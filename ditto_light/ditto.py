@@ -84,10 +84,10 @@ class DittoModel(nn.Module):
 # (Pdb) yy = self.bert(xx1)[0][:,:,:]
             enc = self.bert(x1)[0][:, 0, :] #sn classification uses only the first vector, hence [:, 0, :] 
         # xx = torch.nn.functional.relu( self.dropout( self.fc1(enc) ) )
-        pdb.set_trace()
+        # pdb.set_trace()
         xx   = torch.nn.functional.relu( self.dropout( self.xf(enc) ) )
         out  = self.fc( xx )
-        pdb.set_trace()
+        # pdb.set_trace()
         return out       #sn was:    return self.fc(enc) # .squeeze() # .sigmoid()
 
 # intent: calculate f1 over a dataset
