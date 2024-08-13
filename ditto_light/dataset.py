@@ -1,3 +1,4 @@
+#sn added pram "clipdaet" to replace poorly named "size"
 import torch
 
 from torch.utils import data
@@ -22,7 +23,7 @@ class DittoDataset(data.Dataset):
     def __init__(self,
                  path,
                  max_len=256,
-                 size=None,
+                 size=None, clipdaet=None, #sn
                  lm='roberta',
                  da=None):
         self.tokenizer = get_tokenizer(lm)
@@ -30,24 +31,22 @@ class DittoDataset(data.Dataset):
         self.labels = []
         self.max_len = max_len
         self.size = size
+        self.clipdaet = clipdaet  #sn new.
 
-        if isinstance(path, list):
-            lines = path
-        else:
-            lines = open(path)
-
+        if isinstance(path, list): lines = path
+        else:                      lines = open(path)
         for line in lines:
             s1, s2, label = line.strip().split('\t')
             self.pairs.append((s1, s2))
             self.labels.append(int(label))
 
-        self.pairs = self.pairs[:size]
-        self.labels = self.labels[:size]
+        self.pairs  = self.pairs[ :clipdaet]  if clipdaet > 0 else self.pairs #sn new
+        self.labels = self.labels[:clipdaet]  if clipdaet > 0 else self.labels #sn new
+        #sn was: self.pairs  = self.pairs[ :size]
+        #sn was: self.labels = self.labels[:size]
         self.da = da
-        if da is not None:
-            self.augmenter = Augmenter()
-        else:
-            self.augmenter = None
+        if da is not None: self.augmenter = Augmenter()
+        else:              self.augmenter = None
 
 
     def __len__(self):
@@ -114,4 +113,3 @@ class DittoDataset(data.Dataset):
             x12 = [xi + [0]*(maxlen - len(xi)) for xi in x12]
             return torch.LongTensor(x12), \
                    torch.LongTensor(y)
-

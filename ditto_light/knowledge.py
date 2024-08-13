@@ -70,7 +70,7 @@ class ProductDKInjector(DKInjector):
             str: the transformed entry
         """
         res = ''
-        doc = self.nlp(entry, disable=['tagger', 'parser'])
+        doc = self.nlp(entry, disable=['tagger', 'parser', 'lemmatizer'])  #sn added lemmatizer
         ents = doc.ents
         start_indices = {}
         end_indices = {}
@@ -87,7 +87,6 @@ class ProductDKInjector(DKInjector):
         for idx, token in enumerate(doc):
             if idx in start_indices:
                 res += start_indices[idx] + ' '
-
             # normalizing the numbers
             if token.like_num:
                 try:
@@ -98,11 +97,11 @@ class ProductDKInjector(DKInjector):
                         res += '%.2f ' % (val)
                 except:
                     res += token.text + ' '
-            elif len(token.text) >= 7 and \
-                 any([ch.isdigit() for ch in token.text]):
+            elif len(token.text) >= 7 and any([ch.isdigit() for ch in token.text]):
                 res += 'ID ' + token.text + ' '
             else:
                 res += token.text + ' '
+            print( f'idx = {idx}, token = {token}, res = {res} \n' )  #sn
         return res.strip()
 
 
@@ -127,7 +126,7 @@ class GeneralDKInjector(DKInjector):
             str: the transformed entry
         """
         res = ''
-        doc = self.nlp(entry, disable=['tagger', 'parser'])
+        doc = self.nlp(entry, disable=['tagger', 'parser', 'lemmatizer'])  #sn added lemmatizer
         ents = doc.ents
         start_indices = {}
         end_indices = {}
