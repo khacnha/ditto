@@ -46,12 +46,9 @@ class DittoModel(nn.Module):
         self.alpha_aug = alpha_aug
         hidden_size = self.bert.config.hidden_size  # 768
         self.dropout = nn.Dropout(0.2)
-#        self.fc1    = torch.nn.Linear( hidden_size, 20 )  #sn new
-#        self.fc     = torch.nn.Linear( 20, 2 )               #sn was:  self.fc  = torch.nn.Linear( hidden_size, 2 )
+        self.fc1    = torch.nn.Linear( hidden_size, 20 )
+        self.fc     = torch.nn.Linear( 20, 2 )
 
-        encoder_layer = nn.TransformerEncoderLayer( d_model=hidden_size, nhead=4 )
-        self.xf = nn.TransformerEncoder( encoder_layer, num_layers=1 ) #        self.xf  = nn.TransformerEncoder( d_model = hidden_size, nhead=4, num_encoder_layers=1 )
-        self.fc  = torch.nn.Linear( hidden_size, 2 )
 
     #l    must convert to int16, or the default float will error "Expected tensor 
     #     for argument #1 'indices' to have one of the following scalar types: Long, Int"
@@ -66,10 +63,6 @@ class DittoModel(nn.Module):
     torch.Size([40, 768])  should be 40,261,768.  261 = sequence length.
     """
     def forward( self, x1, x2=None ):
-        """Encode the left, right, and the concatenation of left+right.
-        Args:     x1 (LongTensor): a batch of ID's
-                  x2 (LongTensor, optional): a batch of ID's (augmented)
-        Returns:  Tensor: binary prediction  """
         x1 = x1.to(self.device)     # (batch_size, seq_len)
         if x2 is not None:          # MixDA
             x2 = x2.to(self.device) # (batch_size, seq_len)
@@ -80,15 +73,10 @@ class DittoModel(nn.Module):
             aug_lam = np.random.beta(self.alpha_aug, self.alpha_aug)
             enc = enc1 * aug_lam + enc2 * (1.0 - aug_lam)
         else:
-# (Pdb) xx1 = torch.narrow( x1, 0,0,20 )
-# (Pdb) yy = self.bert(xx1)[0][:,:,:]
             enc = self.bert(x1)[0][:, 0, :] #sn classification uses only the first vector, hence [:, 0, :] 
-        # xx = torch.nn.functional.relu( self.dropout( self.fc1(enc) ) )
-        # pdb.set_trace()
-        xx   = torch.nn.functional.relu( self.dropout( self.xf(enc) ) )
-        out  = self.fc( xx )
-        # pdb.set_trace()
-        return out       #sn was:    return self.fc(enc) # .squeeze() # .sigmoid()
+        xx  = torch.nn.functional.relu( self.dropout( self.fc1(enc) ) )
+        out = self.fc( xx )
+        return out
 
 # intent: calculate f1 over a dataset
 # input : iterator  = the van or test dataset
@@ -288,7 +276,7 @@ def load_model( hp, num_steps ):  # num_steps used by learning rate scheduler, n
     epoch      = 0
     device     = 'cuda' if torch.cuda.is_available() else 'cpu'
     model      = DittoModel(device=device, lm=hp.lm, alpha_aug=hp.alpha_aug)
-    model      = model.cuda()
+    model      = model.cuda() if torch.cuda.is_available() else model.cpu()
     optimizer  = AdamW( model.parameters(), lr=hp.lr )
 
     if hp.fp16:  model, optimizer = amp.initialize( model, optimizer, opt_level='O2' )
